@@ -1,38 +1,5 @@
 package com.scienceminer.nerd.utilities;
 
-import com.scienceminer.nerd.exceptions.*;
-
-import java.io.*;
-import java.util.*;
-
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.nio.charset.Charset;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.RequestAcceptEncoding;
-import org.apache.http.client.protocol.ResponseContentEncoding;
-import org.apache.http.entity.BufferedHttpEntity;
-import org.apache.http.entity.mime.FormBodyPart;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.ContentBody;
-import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
 /**
  * Useful static methods for web service requests.
  * 

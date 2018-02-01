@@ -77,7 +77,7 @@ public class NerdRestProcessFile {
             throw new QueryException("OnlyNER is not supported for PDF input");
         }
 
-        if (nerdQuery == null || isNotBlank(nerdQuery.getText()) || isNotBlank(nerdQuery.getShortText())) {
+        if (isNotBlank(nerdQuery.getText()) || isNotBlank(nerdQuery.getShortText())) {
             throw new QueryException("Query with PDF shall not have the field text or shortText filled in.");
         }
         LOGGER.debug(">> set query object...");
@@ -133,8 +133,7 @@ public class NerdRestProcessFile {
         SortedSet<DocumentPiece> documentParts = doc.getDocumentPart(SegmentationLabels.HEADER);
         if (documentParts != null) {
             String header = engine.getParsers().getHeaderParser().getSectionHeaderFeatured(doc, documentParts, true);
-            List<LayoutToken> tokenizationHeader =
-                    doc.getTokenizationParts(documentParts, doc.getTokenizations());
+            List<LayoutToken> tokenizationHeader = Document.getTokenizationParts(documentParts, doc.getTokenizations());
             String labeledResult = null;
 
             // alternative

@@ -250,6 +250,8 @@ public class NerdEngine {
 		if (nerdQuery.getMinSelectorScore() != 0.0)
 			minSelectorScore = nerdQuery.getMinSelectorScore();
 
+//		aggregateLargestEntities();
+
 		pruneWithSelector(candidates, lang, nerdQuery.getNbest(), shortTextVal, minSelectorScore, localContext, text);
 		//}
 		/*for (Map.Entry<NerdEntity, List<NerdCandidate>> entry : candidates.entrySet()) {
@@ -380,7 +382,7 @@ public class NerdEngine {
 				//}
 			}
 
-			List<NerdCandidate> candidates = new ArrayList<NerdCandidate>();
+			List<NerdCandidate> candidates = new ArrayList<>();
 
 			// if the mention is originally recognized as NE class MEASURE, we don't try to disambiguate it
 			if (entity.getType() == NERLexicon.NER_Type.MEASURE) {
@@ -1248,7 +1250,7 @@ public class NerdEngine {
 	 *  validated... 
 	 */
 	public List<NerdEntity> pruneOverlap(List<NerdEntity> entities, boolean shortText) {
-//System.out.println("pruning overlaps - we have " + entities.size() + " entities");		
+		//System.out.println("pruning overlaps - we have " + entities.size() + " entities");
 		List<Integer> toRemove = new ArrayList<Integer>();
 		for (int pos1=0; pos1<entities.size(); pos1++) {
 			if (toRemove.contains(new Integer(pos1)))
@@ -1259,13 +1261,13 @@ public class NerdEngine {
 				if (!toRemove.contains(new Integer(pos1))) {
 					toRemove.add(new Integer(pos1));
 				}
-//System.out.println("Removing " + pos1 + " - " + entity1.getNormalisedName());
+				//System.out.println("Removing " + pos1 + " - " + entity1.getNormalisedName());
 				continue;
 			}
 
 			// the arity measure below does not need to be precise
 			int arity1 = entity1.getNormalisedName().length() - entity1.getNormalisedName().replaceAll("\\s", "").length() + 1;
-//System.out.println("Position1 " + pos1 + " / arity1 : " + entity1.getNormalisedName() + ": " + arity1);
+			//System.out.println("Position1 " + pos1 + " / arity1 : " + entity1.getNormalisedName() + ": " + arity1);
 			
 			// find all sub term of this entity and entirely or partially overlapping entities
 			for (int pos2=0; pos2<entities.size(); pos2++) {
@@ -1695,33 +1697,33 @@ System.out.println("Merging...");
 			boolean isNe = entity.getType() != null;
 			for(NerdCandidate candidate : candidates) {			
 				//if (candidate.getMethod() == NerdCandidate.NERD)
-				{
-					try {
-						GrobidAnalyzer analyzer = GrobidAnalyzer.getInstance();
-						List<String> words = analyzer.tokenize(entity.getRawName(), 
-							new Language(wikipedia.getConfig().getLangCode(), 1.0));
+				//{
+				try {
+					GrobidAnalyzer analyzer = GrobidAnalyzer.getInstance();
+					List<String> words = analyzer.tokenize(entity.getRawName(),
+						new Language(wikipedia.getConfig().getLangCode(), 1.0));
 
-						double tf = (double)TextUtilities.getOccCount(candidate.getLabel().getText(), text);
-						double idf = ((double)wikipedia.getArticleCount()) / candidate.getLabel().getDocCount();
-						double dice = ProcessText.getDICECoefficient(entity.getNormalisedName(), lang);
+					double tf = (double)TextUtilities.getOccCount(candidate.getLabel().getText(), text);
+					double idf = ((double)wikipedia.getArticleCount()) / candidate.getLabel().getDocCount();
+					double dice = ProcessText.getDICECoefficient(entity.getNormalisedName(), lang);
 
-						double prob = selector.getProbability(candidate.getNerdScore(), 
-							candidate.getLabel().getLinkProbability(), 
-							candidate.getWikiSense().getPriorProbability(), 
-							words.size(),
-							candidate.getRelatednessScore(),
-							context.contains(candidate),
-							isNe, 
-							tf*idf,
-							dice);			
+					double prob = selector.getProbability(candidate.getNerdScore(),
+						candidate.getLabel().getLinkProbability(),
+						candidate.getWikiSense().getPriorProbability(),
+						words.size(),
+						candidate.getRelatednessScore(),
+						context.contains(candidate),
+						isNe,
+						tf*idf,
+						dice);
 
-							//System.out.println("selector score: " + prob);
+						//System.out.println("selector score: " + prob);
 
-						candidate.setSelectionScore(prob);
-					} catch(Exception e) {
-						e.printStackTrace();
-					}
+					candidate.setSelectionScore(prob);
+				} catch(Exception e) {
+					e.printStackTrace();
 				}
+				//}
 			}
 
 /*System.out.println("Surface: " + entity.getRawName());	
@@ -1731,7 +1733,7 @@ for(NerdCandidate cand : candidates) {
 System.out.println("--");*/
 
 
-			List<NerdCandidate> newCandidates = new ArrayList<NerdCandidate>();
+			List<NerdCandidate> newCandidates = new ArrayList<>();
 			for(NerdCandidate candidate : candidates) {
 				if ( (candidate.getSelectionScore() < minSenseProbability) && shortText )
 					continue;
@@ -1766,7 +1768,7 @@ System.out.println("--");*/
 					toRemove.add(entity);
 				else {
 					// this should be useless...
-					cands.replace(entity, new ArrayList<NerdCandidate>());
+					cands.replace(entity, new ArrayList<>());
 				}
 			}
 		}
@@ -2207,7 +2209,7 @@ System.out.println(acronym.getRawName() + " / " + base.getRawName());
 			if (label.exists())
 				labels.add(label);
 
-			// more agressive
+			// more aggressive
 			label = new Label(wikipedia.getEnvironment(), 
 					WordUtils.capitalizeFully(normalisedString.toLowerCase(), ProcessText.delimiters.toCharArray()));
 			if (label.exists())
@@ -2284,5 +2286,140 @@ System.out.println(acronym.getRawName() + " / " + base.getRawName());
 		}
 		return results;
 	}
+
+	// Working with overlapping entities, tyring to select larger entities only when the candidates are the same
+/*	private void aggregateLargestEntities(Map<NerdEntity, List<NerdCandidate>> entities) {
+
+		for (int pos1=0; pos1<entities.size(); pos1++) {
+			NerdEntity entity1 = entities.get(pos1);
+
+			if (entity1.getRawName() == null)  {
+				if (!toRemove.contains(new Integer(pos1))) {
+					toRemove.add(new Integer(pos1));
+				}
+				//System.out.println("Removing " + pos1 + " - " + entity1.getNormalisedName());
+				continue;
+			}
+
+			// the arity measure below does not need to be precise
+			int arity1 = entity1.getNormalisedName().length() - entity1.getNormalisedName().replaceAll("\\s", "").length() + 1;
+			//System.out.println("Position1 " + pos1 + " / arity1 : " + entity1.getNormalisedName() + ": " + arity1);
+
+			// find all sub term of this entity and entirely or partially overlapping entities
+			for (int pos2=0; pos2<entities.size(); pos2++) {
+				if (pos1 == pos2)
+					continue;
+
+				NerdEntity entity2 = entities.get(pos2);
+				if (entity2.getOffsetEnd() < entity1.getOffsetStart())
+					continue;
+
+				if (entity1.getOffsetEnd() < entity2.getOffsetStart())
+					continue;
+
+				if (toRemove.contains(new Integer(pos2)))
+					continue;
+
+
+					if (entity2.getRawName() == null) {
+						if (!toRemove.contains(new Integer(pos2))) {
+							toRemove.add(new Integer(pos2));
+						}
+//System.out.println("Removing " + pos2 + " - " + entity2.getRawNormalisedName());
+						continue;
+					}
+
+					if ((entity2.getType() != null) && (entity2.getWikipediaExternalRef() == -1)) {
+						// we have a NER not disambiguated
+						// check if the other entity has been disambiguated
+						if ( (entity1.getWikipediaExternalRef() != -1) && (entity1.getNerdScore() > 0.2) ) {
+							if (!toRemove.contains(new Integer(pos2))) {
+								toRemove.add(new Integer(pos2));
+							}
+//System.out.println("Removing " + pos2 + " - " + entity2.getNormalisedName());
+							continue;
+						}
+					}
+
+					if ((entity1.getType() != null) && (entity1.getWikipediaExternalRef() == -1)) {
+						// we have a NER not disambiguated
+						// check if the other entity has been disambiguated
+						if ( (entity2.getWikipediaExternalRef() != -1) && (entity2.getNerdScore() > 0.2) ) {
+							if (!toRemove.contains(new Integer(pos1))) {
+								toRemove.add(new Integer(pos1));
+							}
+//System.out.println("Removing " + pos1 + " - " + entity1.getNormalisedName());
+							break;
+						}
+					}
+
+					*//*if ((entity1.getType() != null) && (entity1.getWikipediaExternalRef() == -1) &&
+						 (entity2.getWikipediaExternalRef() != -1)) {
+						// we don't apply arity based pruning
+						continue;
+					}*//*
+
+					if (entity1.getWikipediaExternalRef() == entity2.getWikipediaExternalRef()) {
+						if ( (entity1.getType() != null) && (entity2.getType() == null) ) {
+							if (!toRemove.contains(new Integer(pos2)))
+								toRemove.add(new Integer(pos2));
+//System.out.println("Removing " + pos2 + " - " + entity2.getNormalisedName());
+							continue;
+						}
+					}
+
+					int arity2 = entity2.getNormalisedName().length() - entity2.getNormalisedName().replaceAll("\\s", "").length() + 1;
+//System.out.println("arity2 : " + entity2.getNormalisedName() + ": " + arity2);
+					if (arity2 < arity1) {
+						// longest match wins
+						if (!toRemove.contains(new Integer(pos2)))
+							toRemove.add(new Integer(pos2));
+//System.out.println("Removing " + pos2 + " - " + entity2.getNormalisedName());
+						continue;
+					}
+					else if (arity2 == arity1) {
+						// we check the nerd scores of the top candiate for the two entities
+						double conf1 = entity1.getNerdScore();
+						double conf2 = entity2.getNerdScore();
+						//double conf1 = entity1.getSelectionScore();
+						//double conf2 = entity2.getSelectionScore();
+						if (conf2 < conf1) {
+							if (!toRemove.contains(new Integer(pos2))) {
+								toRemove.add(new Integer(pos2));
+							}
+//System.out.println("Removing " + pos2 + " - " + entity2.getNormalisedName());
+							continue;
+						} *//*else {
+							// if equal we check the selection scores of the top candiate for the two entities
+							conf1 = entity1.getSelectionScore();
+							conf2 = entity2.getSelectionScore();
+							if (conf2 < conf1) {
+								if (!toRemove.contains(new Integer(pos2))) {
+									toRemove.add(new Integer(pos2));
+								}
+							} else {
+								// if still equal we check the prob_c
+								conf1 = entity1.getProb_c();
+								conf2 = entity2.getProb_c();
+								if (conf2 < conf1) {
+									if (!toRemove.contains(new Integer(pos2))) {
+										toRemove.add(new Integer(pos2));
+									}
+								} else {
+									// too uncertain we remove all
+									if (!toRemove.contains(new Integer(pos2))) {
+										toRemove.add(new Integer(pos2));
+									}
+									if (!toRemove.contains(new Integer(pos1))) {
+										toRemove.add(new Integer(pos1));
+									}
+								}
+							}
+						}*//*
+					}
+				}
+			}
+		}
+	}*/
 	
 }

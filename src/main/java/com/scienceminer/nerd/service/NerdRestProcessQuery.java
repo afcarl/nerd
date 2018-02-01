@@ -25,6 +25,7 @@ import static shadedwipo.org.apache.commons.lang3.StringUtils.isEmpty;
 public class NerdRestProcessQuery {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NerdRestProcessQuery.class);
+    private int MINIMUM_TEXT_LENGTH = 10;
 
     /**
      * Parse a structured query and return the corresponding normalized enriched and disambiguated query object.
@@ -51,10 +52,10 @@ public class NerdRestProcessQuery {
 
         switch (nerdQuery.getQueryType()) {
             case NerdQuery.QUERY_TYPE_TEXT:
-                if (nerdQuery.getText().length() > 5) {
+                if (nerdQuery.getText().length() > MINIMUM_TEXT_LENGTH) {
                     output = processQueryText(nerdQuery);
                 } else {
-                    throw new QueryException("Text query too short, use shortText instead.");
+                    throw new QueryException("Text query too short, less than " + MINIMUM_TEXT_LENGTH + " characters. Use the field shortText instead.");
                 }
                 break;
             case NerdQuery.QUERY_TYPE_SHORT_TEXT:
@@ -71,8 +72,10 @@ public class NerdRestProcessQuery {
         return output;
     }
 
-    /** Check if the parameter onlyNER is set and modify the query accordingly, if the language is not fr or en,
-     * an error is thrown. Deprecated, will be removed in next release. */
+    /**
+     * Check if the parameter onlyNER is set and modify the query accordingly, if the language is not fr or en,
+     * an error is thrown. Deprecated, will be removed in next release.
+     */
     @Deprecated
     public static void processOnlyNER(NerdQuery nerdQuery) {
         if (nerdQuery.getOnlyNER()) {
@@ -176,14 +179,15 @@ public class NerdRestProcessQuery {
         return nerdQuery.toJSONClean();
     }
 
-    /** Mark (confidence 1.0) the user defined entities as long as:
-     *  - they have a valid offset (end > start and != -1)
-     *  - they have a valid wikipedia or wikidata ID
+    /**
+     * Mark (confidence 1.0) the user defined entities as long as:
+     * - they have a valid offset (end > start and != -1)
+     * - they have a valid wikipedia or wikidata ID
      **/
     public void markUserEnteredEntities(NerdQuery nerdQuery, long maxOffsetValue) {
 
         for (NerdEntity entity : nerdQuery.getEntities()) {
-            if(entity.getOffsetStart() == -1 || entity.getOffsetEnd() == -1
+            if (entity.getOffsetStart() == -1 || entity.getOffsetEnd() == -1
                     || entity.getOffsetEnd() < entity.getOffsetStart() || entity.getOffsetEnd() > maxOffsetValue) {
                 LOGGER.warn("The entity " + entity.toJsonCompact() + " doesn't have valid offset. Ignoring it.");
             } else {
@@ -334,7 +338,7 @@ public class NerdRestProcessQuery {
         }
 
         // possible entity mentions
-        ProcessText processText = ProcessText.getInstance();         
+        ProcessText processText = ProcessText.getInstance();
         List<Mention> entities = processText.process(nerdQuery);
 
         // we keep only entities not conflicting with the ones already present in the query

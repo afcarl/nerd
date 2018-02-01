@@ -5,14 +5,10 @@ import java.util.*;
 import java.io.*;
 import java.util.regex.*;
 
-import com.scienceminer.nerd.kb.*;
-import com.scienceminer.nerd.disambiguation.NerdCandidate;
 import com.scienceminer.nerd.utilities.NerdConfig;
 import com.scienceminer.nerd.embeddings.SimilarityScorer;
 
-import org.grobid.core.utilities.OffsetPosition;
 import org.grobid.core.lang.Language;
-import org.grobid.core.utilities.LanguageUtilities;
 import org.grobid.core.utilities.TextUtilities;
 import org.grobid.trainer.LabelStat;
 import org.grobid.core.analyzers.GrobidAnalyzer;
@@ -27,24 +23,15 @@ import org.slf4j.LoggerFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
-import com.scienceminer.nerd.kb.model.Label.Sense;
 import com.scienceminer.nerd.kb.model.*;
 import com.scienceminer.nerd.kb.LowerKnowledgeBase;
-import com.scienceminer.nerd.kb.db.KBDatabase.DatabaseType;
 import com.scienceminer.nerd.features.*;
 import com.scienceminer.nerd.training.*;
 import com.scienceminer.nerd.mention.*;
 import com.scienceminer.nerd.utilities.mediaWiki.MediaWikiParser;
 import com.scienceminer.nerd.evaluation.*;
 
-import smile.validation.ConfusionMatrix;
-import smile.validation.FMeasure;
-import smile.validation.Precision;
-import smile.validation.Recall;
-import smile.data.*;
-import smile.data.parser.*;
 import smile.regression.*;
-import com.thoughtworks.xstream.*;
 
 /**
  * A machine learning model for estimating if a candidate should be selected or not as the
@@ -52,10 +39,8 @@ import com.thoughtworks.xstream.*;
  * decision based on the ranked entities and the context. 
  */
 public class NerdSelector extends NerdModel {
-	/**
-	 * The class Logger.
-	 */
-	private static final Logger logger = LoggerFactory.getLogger(NerdSelector.class);
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(NerdSelector.class);
 
 	// selected feature set for this particular selector
 	private FeatureType featureType;
@@ -103,9 +88,11 @@ public class NerdSelector extends NerdModel {
 			// load model
 			File modelFile = new File(MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model"); 
 			if (!modelFile.exists()) {
-                logger.debug("Invalid model file for nerd selector.");
+                LOGGER.debug("Invalid model file for nerd selector.");
 			}
 			String xml = FileUtils.readFileToString(modelFile, "UTF-8");
+
+			smile.math.Math.setSeed(12345);
 			if (model == MLModel.RANDOM_FOREST)
 				forest = (RandomForest)xstream.fromXML(xml);
 			else
@@ -122,7 +109,7 @@ public class NerdSelector extends NerdModel {
 				attributes = attributeDataset.attributes();
 				attributeDataset = null;
 			}
-			logger.info("Model for nerd selector loaded: " + 
+			LOGGER.info("Model for nerd selector loaded: " +
 				MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model");
 		}
 
@@ -141,43 +128,46 @@ public class NerdSelector extends NerdModel {
 	}
 
 	public void saveModel() throws IOException, Exception {
-		logger.info("saving model");
+		LOGGER.info("saving model");
 		// save the model with XStream
 		String xml = xstream.toXML(forest);
 		File modelFile = new File(MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model"); 
 		if (!modelFile.exists()) {
-            logger.debug("Invalid file for saving author filtering model.");
+            LOGGER.debug("Invalid file for saving author filtering model.");
 		}
 		FileUtils.writeStringToFile(modelFile, xml, "UTF-8");
-		System.out.println("Model saved under " + modelFile.getPath());
+		LOGGER.info("Model saved under " + modelFile.getPath());
 	}
 
 	public void loadModel() throws IOException, Exception {
-		logger.info("loading model");
+		LOGGER.info("loading model");
 		// load model
 		File modelFile = new File(MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model"); 
 		if (!modelFile.exists()) {
-        	logger.debug("Model file for nerd selector does not exist.");
+        	LOGGER.debug("Model file for nerd selector does not exist.");
         	throw new NerdResourceException("Model file for nerd selector does not exist.");
 		}
 		String xml = FileUtils.readFileToString(modelFile, "UTF-8");
+		smile.math.Math.setSeed(12345);
 		if (model == MLModel.RANDOM_FOREST)
 			forest = (RandomForest)xstream.fromXML(xml);
 		else
 			forest = (GradientTreeBoost)xstream.fromXML(xml);
-		logger.debug("Model for nerd ranker loaded.");
+		LOGGER.debug("Model for nerd ranker loaded.");
 	}
 
-	public void trainModel() throws Exception {
+	public void trainModel() {
 		if (attributeDataset == null) {
-			logger.debug("Training data for nerd selector has not been loaded or prepared");
+			LOGGER.debug("Training data for nerd selector has not been loaded or prepared");
 			throw new NerdResourceException("Training data for nerd selector has not been loaded or prepared");
 		}
-		logger.info("building model");
+		LOGGER.info("building model");
 		double[][] x = attributeDataset.toArray(new double[attributeDataset.size()][]);
 		double[] y = attributeDataset.toArray(new double[attributeDataset.size()]);
 		
 		long start = System.currentTimeMillis();
+		//setting the seed
+		smile.math.Math.setSeed(12345);
 		if (model == MLModel.RANDOM_FOREST)
 			forest = new RandomForest(attributeDataset.attributes(), x, y, 200);
 		else {
@@ -185,7 +175,7 @@ public class NerdSelector extends NerdModel {
 			forest = new GradientTreeBoost(attributeDataset.attributes(), x, y, 
 				GradientTreeBoost.Loss.LeastAbsoluteDeviation, 500, 6, 0.05, 0.7);
 		}
-        System.out.println("NERD selector model created in " + 
+        LOGGER.info("NERD selector model created in " +
 			(System.currentTimeMillis() - start) / (1000.00) + " seconds");
 	}
 
@@ -202,7 +192,7 @@ public class NerdSelector extends NerdModel {
 		negatives = 0;
 		NerdRanker ranker = new NerdRanker(wikipedia);
 		for (Article article : articles.getSample()) {
-			System.out.println("Training on " + (nbArticle+1) + "  / " + articles.getSample().size());
+			LOGGER.info("Training on " + (nbArticle+1) + "  / " + articles.getSample().size());
 			arffBuilder = new StringBuilder();
 			if (article instanceof CorpusArticle)
 				arffBuilder = trainCorpusArticle(article, arffBuilder, ranker);	
@@ -213,21 +203,21 @@ public class NerdSelector extends NerdModel {
 		}
 		//arffDataset = arffBuilder.toString();
 		arffDataset = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
-		//System.out.println(arffDataset);
+		//logger.info(arffDataset);
 		attributeDataset = arffParser.parse(IOUtils.toInputStream(arffDataset, StandardCharsets.UTF_8));
-		System.out.println("Training data saved under " + file.getPath());
+		LOGGER.info("Training data saved under " + file.getPath());
 	}
 
 	private StringBuilder trainWikipediaArticle(Article article, 
 									StringBuilder arffBuilder, 
 									NerdRanker ranker) throws Exception {
-		System.out.println(" - training " + article);
+		LOGGER.info(" - training " + article);
 		List<NerdEntity> refs = new ArrayList<NerdEntity>();
 		String lang = wikipedia.getConfig().getLangCode();
 		String content = MediaWikiParser.getInstance().toTextWithInternalLinksArticlesOnly(article.getFullWikiText(), lang);
 		content = content.replace("''", "");
 		StringBuilder contentText = new StringBuilder(); 
-		//System.out.println(content);
+		//logger.info(content);
 		Pattern linkPattern = Pattern.compile("\\[\\[(.*?)\\]\\]"); 
 		Matcher linkMatcher = linkPattern.matcher(content);
 
@@ -270,14 +260,14 @@ public class NerdSelector extends NerdModel {
 				ref.setOffsetStart(contentText.length()-labelText.length());
 				ref.setOffsetEnd(contentText.length());
 				refs.add(ref);
-//System.out.println(linkText + ", " + labelText + ", " + destText + " / " + ref.getOffsetStart() + " " + ref.getOffsetEnd());
+//logger.info(linkText + ", " + labelText + ", " + destText + " / " + ref.getOffsetStart() + " " + ref.getOffsetEnd());
 			}
 		}
 		contentText.append(content.substring(head));
 		String contentString = contentText.toString();
 		contentString = UnicodeUtil.normaliseText(contentString);
 
-//System.out.println("Cleaned content: " + contentString);
+//logger.info("Cleaned content: " + contentString);
 		List<LayoutToken> tokens = GrobidAnalyzer.getInstance().tokenizeWithLayoutToken(contentString, new Language(lang, 1.0));
 
 		// get candidates for this content
@@ -291,9 +281,9 @@ public class NerdSelector extends NerdModel {
 		if (lang.equals("en") || lang.equals("fr")) {
 			entities = processText.processNER(tokens, language);
 		}
-//System.out.println("number of NE found: " + entities.size());		
+//logger.info("number of NE found: " + entities.size());		
 		List<Mention> entities2 = processText.processWikipedia(tokens, language);
-//System.out.println("number of non-NE found: " + entities2.size());	
+//logger.info("number of non-NE found: " + entities2.size());	
 		for(Mention entity : entities2) {
 			// we add entities only if the mention is not already present
 			if (!entities.contains(entity))
@@ -309,23 +299,23 @@ public class NerdSelector extends NerdModel {
 			NerdEntity nerdEntity = new NerdEntity(entity);
 			disambiguatedEntities.add(nerdEntity);
 		}
-//System.out.println("total entities to disambiguate: " + disambiguatedEntities.size());	
+//logger.info("total entities to disambiguate: " + disambiguatedEntities.size());	
 
 		Map<NerdEntity, List<NerdCandidate>> candidates = 
 			nerdEngine.generateCandidatesSimple(disambiguatedEntities, lang);
-//System.out.println("total entities with candidates: " + candidates.size());
+//logger.info("total entities with candidates: " + candidates.size());
 		// set the expected concept to the NerdEntity
 		for (Map.Entry<NerdEntity, List<NerdCandidate>> entry : candidates.entrySet()) {
 			List<NerdCandidate> cands = entry.getValue();
 			NerdEntity entity = entry.getKey();
 
 			/*for (NerdCandidate cand : cands) {
-				System.out.println(cand.toString());
+				logger.info(cand.toString());
 			}*/
 
 			int start = entity.getOffsetStart();
 			int end = entity.getOffsetEnd();
-//System.out.println("entity: " + start + " / " + end + " - " + contentString.substring(start, end));
+//logger.info("entity: " + start + " / " + end + " - " + contentString.substring(start, end));
 			for(NerdEntity ref : refs) {
 				int start_ref = ref.getOffsetStart();
 				int end_ref = ref.getOffsetEnd();
@@ -337,7 +327,7 @@ public class NerdSelector extends NerdModel {
 		}
 
 		// get context for this content
-//System.out.println("get context for this content");		
+//logger.info("get context for this content");		
 		NerdContext context = null;
 		try {
 			 context = relatedness.getContext(candidates, null, lang, false);
@@ -364,16 +354,16 @@ public class NerdSelector extends NerdModel {
 			for(NerdCandidate candidate : cands) {
 				try {
 					nbCandidate++;
-//System.out.println(nbCandidate + " candidate / " + cands.size());
+//logger.info(nbCandidate + " candidate / " + cands.size());
 					Label.Sense sense = candidate.getWikiSense();
 					if (sense == null)
 						continue;
 
 					double commonness = sense.getPriorProbability();
-//System.out.println("commonness: " + commonness);
+//logger.info("commonness: " + commonness);
 
 					double related = relatedness.getRelatednessTo(candidate, context, lang);
-//System.out.println("relatedness: " + related);
+//logger.info("relatedness: " + related);
 
 					boolean bestCaseContext = true;
 					// actual label used
@@ -435,9 +425,9 @@ public class NerdSelector extends NerdModel {
 							this.positives++;
 					}
 		
-					//System.out.println("*"+candidate.getWikiSense().getTitle() + "* " + 
+					//logger.info("*"+candidate.getWikiSense().getTitle() + "* " + 
 					//		entity.toString());
-					//System.out.println("\t\t" + "nerd_score: " + nerd_score + 
+					//logger.info("\t\t" + "nerd_score: " + nerd_score + 
 					//	", prob_anchor_string: " + feature.prob_anchor_string);
 
 					/*if ( (feature.label == 1.0) && (nbCandidate > 1) )
@@ -456,7 +446,7 @@ public class NerdSelector extends NerdModel {
 			Collections.sort(cands);
 		}
 
-		System.out.println("article contribution: " + nbInstance + " training instances");
+		LOGGER.info("article contribution: " + nbInstance + " training instances");
 		return arffBuilder;
 	}
 
@@ -476,7 +466,7 @@ public class NerdSelector extends NerdModel {
 		List<LabelStat> stats = new ArrayList<LabelStat>();
 		int n = 0;
 		for (Article article : testSet.getSample()) {
-			System.out.println("Evaluating on article " + (n+1) + " / " + testSet.getSample().size());
+			LOGGER.info("Evaluating on article " + (n+1) + " / " + testSet.getSample().size());
 			if (article instanceof CorpusArticle)
 				stats.add(evaluateCorpusArticle(article, ranker, full));
 			else	
@@ -488,7 +478,7 @@ public class NerdSelector extends NerdModel {
 	}
 
 	private LabelStat evaluateWikipediaArticle(Article article, NerdRanker ranker, boolean full) throws Exception {
-System.out.println(" - evaluating " + article);
+LOGGER.info(" - evaluating " + article);
 		Language lang = new Language(wikipedia.getConfig().getLangCode(), 1.0);
 		String content = MediaWikiParser.getInstance().toTextWithInternalLinksArticlesOnly(article.getFullWikiText(), 
 			lang.getLang());
