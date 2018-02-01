@@ -84,6 +84,7 @@ public class NerdSelector extends NerdModel {
 								boolean isNe,
 								double tf_idf, 
 								double dice) throws Exception {
+		smile.math.Math.setSeed(12345);
 		if (forest == null) {
 			// load model
 			File modelFile = new File(MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model"); 
@@ -92,7 +93,7 @@ public class NerdSelector extends NerdModel {
 			}
 			String xml = FileUtils.readFileToString(modelFile, "UTF-8");
 
-			smile.math.Math.setSeed(12345);
+
 			if (model == MLModel.RANDOM_FOREST)
 				forest = (RandomForest)xstream.fromXML(xml);
 			else
@@ -124,6 +125,7 @@ public class NerdSelector extends NerdModel {
 		feature.tf_idf = tf_idf;
 		feature.dice = dice;
 		double[] features = feature.toVector(attributes);
+		smile.math.Math.setSeed(12345);
 		return forest.predict(features);
 	}
 
@@ -168,6 +170,7 @@ public class NerdSelector extends NerdModel {
 		long start = System.currentTimeMillis();
 		//setting the seed
 		smile.math.Math.setSeed(12345);
+		
 		if (model == MLModel.RANDOM_FOREST)
 			forest = new RandomForest(attributeDataset.attributes(), x, y, 200);
 		else {

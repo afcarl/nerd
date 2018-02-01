@@ -957,6 +957,8 @@ public class NerdEngine {
 					score = ranker.getProbability(commonness, related, quality,
 						bestCaseContext, embeddingsSimilarity, wikidataId, wikidataP31Id);
 
+//					System.out.println(score);
+
 					//System.out.println(entity.getRawName() + " -> " + candidate.getWikiSense().getTitle() + "(candidate) " + score + "(ranker/nerd score) " +  " " + entity.toString());
 					//System.out.println("\t\t" + "commonness: " + commonness + ", relatedness: " + related + ", embeddingsSimilarity: " + embeddingsSimilarity);
 				}

@@ -127,6 +127,7 @@ public class NerdRanker extends NerdModel {
 			return relatedness;
 		}
 
+		smile.math.Math.setSeed(12345);
 		if (forest == null) {
 			// load model
 			File modelFile = new File(MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model"); 
@@ -134,7 +135,7 @@ public class NerdRanker extends NerdModel {
                 logger.debug("Invalid model file for nerd ranker.");
 			}
 			String xml = FileUtils.readFileToString(modelFile, StandardCharsets.UTF_8);
-			smile.math.Math.setSeed(12345);
+
 			if (model == MLModel.RANDOM_FOREST)
 				forest = (RandomForest)xstream.fromXML(xml);
 			else
@@ -155,7 +156,7 @@ public class NerdRanker extends NerdModel {
 			logger.info("Model for nerd ranker loaded: " + 
 				MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model");
 		}
-
+		smile.math.Math.setSeed(12345);
 		GenericRankerFeatureVector feature = getNewFeature();
 
 		feature.prob_c = commonness;
