@@ -126,8 +126,7 @@ public class NerdRanker extends NerdModel {
 			// special case of embeddings only, we just need the embeddings similarity score
 			return relatedness;
 		}
-
-		smile.math.Math.setSeed(12345);
+		
 		if (forest == null) {
 			// load model
 			File modelFile = new File(MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model"); 
@@ -156,7 +155,7 @@ public class NerdRanker extends NerdModel {
 			logger.info("Model for nerd ranker loaded: " + 
 				MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model");
 		}
-		smile.math.Math.setSeed(12345);
+//		smile.math.Math.setSeed(12345);
 		GenericRankerFeatureVector feature = getNewFeature();
 
 		feature.prob_c = commonness;
@@ -169,11 +168,14 @@ public class NerdRanker extends NerdModel {
 		feature.wikidata_P31_entity_id = wikidataP31Id;
 		double[] features = feature.toVector(attributes);
 		double score = forest.predict(features);
-		/*System.out.println("\t\t" + "commonness: " + commonness + 
-							", relatedness: " + relatedness + 
-							", context_quality: " + quality + 
-							", context_quality: " + bestCaseContext + 
-							", embeddingsSimilarity: " + embeddingsSimilarity);*/
+
+		logger.debug("Ranker, score: "+ score +
+			", commonness: " + commonness +
+			", relatedness: " + relatedness +
+			", context_quality: " + quality +
+			", context_quality: " + bestCaseContext +
+			", embeddingsSimilarity: " + embeddingsSimilarity);
+
 		return score;
 	}
 
@@ -224,13 +226,13 @@ public class NerdRanker extends NerdModel {
 		
 		long start = System.currentTimeMillis();
 		
-		smile.math.Math.setSeed(12345);
+//		smile.math.Math.setSeed(12345);
 		if (model == MLModel.RANDOM_FOREST)
 			forest = new RandomForest(attributeDataset.attributes(), x, y, 200);
 		else {
 			//nb trees: 200, maxNodes: 6, srinkage: 0.05, subsample: 0.5
 			forest = new GradientTreeBoost(attributeDataset.attributes(), x, y, 
-				GradientTreeBoost.Loss.LeastAbsoluteDeviation, 500, 6, 0.05, 0.5);
+				GradientTreeBoost.Loss.LeastAbsoluteDeviation, 1000, 6, 0.05, 0.5);
 		}
 
         System.out.println("NERD ranker model created in " + 
