@@ -8,34 +8,33 @@
     </appender>
 
     <appender name="RANKER" class="org.apache.log4j.FileAppender">
-        <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="%d{dd MMM yyyy HH:mm.ss} [%-5p] %-25c{1} - %m\n"/>
-        </layout>
         <param name="file" value="ranker.log"/>
         <param name="immediateFlush" value="true"/>
         <param name="threshold" value="debug"/>
         <param name="append" value="false"/>
-        <appender-ref ref="RANKER"/>
-    </appender>
-
-    <appender name="SELECTOR" class="org.apache.log4j.FileAppender">
         <layout class="org.apache.log4j.PatternLayout">
             <param name="ConversionPattern" value="%d{dd MMM yyyy HH:mm.ss} [%-5p] %-25c{1} - %m\n"/>
         </layout>
+    </appender>
+
+    <appender name="SELECTOR" class="org.apache.log4j.FileAppender">
         <param name="file" value="selector.log"/>
         <param name="immediateFlush" value="true"/>
         <param name="threshold" value="debug"/>
         <param name="append" value="false"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{dd MMM yyyy HH:mm.ss} [%-5p] %-25c{1} - %m\n"/>
+        </layout>
     </appender>
-
+    
     <logger name="com.scienceminer.nerd.disambiguation.NerdSelector" additivity="false">
+        <level value="DEBUG" />
         <appender-ref ref="SELECTOR" />
-        <level value="debug" />
     </logger>
 
     <logger name="com.scienceminer.nerd.disambiguation.NerdRanker" additivity="false">
+        <level value="DEBUG" />
         <appender-ref ref="RANKER" />
-        <level value="debug" />
     </logger>
 
     <root>
