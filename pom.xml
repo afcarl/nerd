@@ -125,7 +125,7 @@
                 <version>9.4.8.v20171121</version>
 
                 <configuration>
-                    <jvmArgs>-Xms4g -Xmx10g -Dfile.encoding=UTF-8 -Djdk.xml.totalEntitySizeLimit=2147480000</jvmArgs>
+                    <jvmArgs>-Xms4g -Xmx10g -Dfile.encoding=UTF-8 -Djdk.xml.totalEntitySizeLimit=2147480000 -Dsmile.threads=1</jvmArgs>
                     <scanIntervalSeconds>0</scanIntervalSeconds>
                     <stopKey/>
                     <stopPort/>
@@ -263,7 +263,7 @@
                             <arguments>
                                 <argument>-XX:+HeapDumpOnOutOfMemoryError</argument>
                                 <argument>-Djdk.xml.totalEntitySizeLimit=2147480000</argument>
-                                <!--<argument>-Dsmile.threads=1</argument>-->
+                                <argument>-Dsmile.threads=1</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>-Xms2g</argument>
