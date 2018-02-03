@@ -155,7 +155,7 @@ public class NerdRanker extends NerdModel {
 			logger.info("Model for nerd ranker loaded: " + 
 				MODEL_PATH_LONG+"-"+wikipedia.getConfig().getLangCode()+".model");
 		}
-//		smile.math.Math.setSeed(12345);
+		smile.math.Math.setSeed(12345);
 		GenericRankerFeatureVector feature = getNewFeature();
 
 		feature.prob_c = commonness;
@@ -226,7 +226,7 @@ public class NerdRanker extends NerdModel {
 		
 		long start = System.currentTimeMillis();
 		
-//		smile.math.Math.setSeed(12345);
+		smile.math.Math.setSeed(12345);
 		if (model == MLModel.RANDOM_FOREST)
 			forest = new RandomForest(attributeDataset.attributes(), x, y, 200);
 		else {

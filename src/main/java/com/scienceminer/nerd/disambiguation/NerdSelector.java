@@ -125,7 +125,7 @@ public class NerdSelector extends NerdModel {
 		feature.dice = dice;
 
 		double[] features = feature.toVector(attributes);
-		//smile.math.Math.setSeed(12345);
+		smile.math.Math.setSeed(12345);
 		final double score = forest.predict(features);
 
         LOGGER.debug("selector: " +
@@ -165,7 +165,7 @@ public class NerdSelector extends NerdModel {
         	throw new NerdResourceException("Model file for nerd selector does not exist.");
 		}
 		String xml = FileUtils.readFileToString(modelFile, "UTF-8");
-//		smile.math.Math.setSeed(12345);
+
 		if (model == MLModel.RANDOM_FOREST)
 			forest = (RandomForest)xstream.fromXML(xml);
 		else
@@ -183,7 +183,7 @@ public class NerdSelector extends NerdModel {
 		double[] y = attributeDataset.toArray(new double[attributeDataset.size()]);
 		
 		long start = System.currentTimeMillis();
-		//setting the seed
+
 		smile.math.Math.setSeed(12345);
 
 		if (model == MLModel.RANDOM_FOREST)
